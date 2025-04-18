@@ -100,10 +100,10 @@ def run_experiment(config: ExperimentConfig) -> ExperimentResult:
     warmup(forward_backward, A, B_t, offs)
     start_time_ns = time.perf_counter_ns()
     forward_backward(A, B_t, offs)
-    time_ns  = time.perf_counter_ns() - start_time_ns
+    time_ns = time.perf_counter_ns() - start_time_ns
     time_us = time_ns / 1e3
 
-    return ExperimentResult(time_us = time_us)
+    return ExperimentResult(time_us=time_us)
 
 
 def print_results(experiments: List[Experiment]):
@@ -115,12 +115,8 @@ def print_results(experiments: List[Experiment]):
     ]
     rows = []
     for experiment in experiments:
-        A_shape = (
-            f"({experiment.config.A_shape[0]}, {experiment.config.A_shape[1]})"
-        )
-        B_shape = (
-            f"({experiment.config.B_shape[0]}, {experiment.config.B_shape[1]}, {experiment.config.B_shape[2]})"
-        )
+        A_shape = f"({experiment.config.A_shape[0]}, {experiment.config.A_shape[1]})"
+        B_shape = f"({experiment.config.B_shape[0]}, {experiment.config.B_shape[1]}, {experiment.config.B_shape[2]})"
         rows.append(
             [
                 A_shape,

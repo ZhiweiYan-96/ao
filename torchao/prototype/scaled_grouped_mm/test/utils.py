@@ -2,8 +2,9 @@ from typing import Tuple
 
 import torch
 
-from torchao.float8.float8_utils import tensor_to_scale, to_fp8_saturated
 from torchao.float8.config import ScalingGranularity
+from torchao.float8.float8_utils import tensor_to_scale, to_fp8_saturated
+
 
 def _to_2d_jagged_float8_tensor_colwise(
     A_col_major: torch.Tensor,

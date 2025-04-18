@@ -4,17 +4,17 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 
 from torchao.float8.config import ScalingGranularity
 from torchao.float8.float8_utils import tensor_to_scale, to_fp8_saturated
-from torchao.prototype.scaled_grouped_mm.utils import _is_column_major
 from torchao.prototype.scaled_grouped_mm.kernels.jagged_float8_scales import (
     triton_fp8_col_major_jagged_colwise_scales,
     triton_fp8_row_major_jagged_rowwise_scales,
 )
+from torchao.prototype.scaled_grouped_mm.utils import _is_column_major
 
 
 def _scaled_grouped_mm(
@@ -192,11 +192,13 @@ class _Float8GroupedMM(torch.autograd.Function):
 
         # grad_B is a special case. both operands of the grouped gemm will be 2D with offsets determing the "groups."
         # Compute scales for grad_output_t and A, which are both 2D tensors with offsets which define the "jagged" groups.
-        grad_output_t_fp8_row_major, grad_output_t_scales = triton_fp8_row_major_jagged_rowwise_scales(
-            grad_output_t_row_major,
-            offs,
-            output_dtype=torch.float8_e4m3fn,
-            round_scales_to_power_of_2=True,
+        grad_output_t_fp8_row_major, grad_output_t_scales = (
+            triton_fp8_row_major_jagged_rowwise_scales(
+                grad_output_t_row_major,
+                offs,
+                output_dtype=torch.float8_e4m3fn,
+                round_scales_to_power_of_2=True,
+            )
         )
 
         A_fp8_col_major, A_scales = triton_fp8_col_major_jagged_colwise_scales(
