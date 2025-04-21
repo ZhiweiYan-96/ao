@@ -123,6 +123,7 @@ class MultiTensor(torch.Tensor):
         percdamp=0.01,
         blocksize=128,
         group_size=-1,
+        device="cuda"
     ):
         cls.get_qparams_func = get_qparams_func
         cls.quantize_func = quantize_func
@@ -136,6 +137,7 @@ class MultiTensor(torch.Tensor):
         cls.percdamp = percdamp
         cls.blocksize = blocksize
         cls.group_size = group_size
+        cls.device = device
 
     @classmethod
     def __torch_function__(
@@ -274,10 +276,11 @@ class MultiTensor(torch.Tensor):
         orig_counts = [x.count if isinstance(x, MultiTensor) else 1 for x in flat_args]
 
         # device hint
-        with torch._C.DisableTorchFunctionSubclass():
-            has_xpu = any(x.device.type == "xpu" for x in flat_args if isinstance(x, torch.Tensor)) \
-                or any(x.values[0].device.type == "xpu" for x in flat_args if isinstance(x, MultiTensor))
-            device = "xpu" if has_xpu else "cuda"
+        # with torch._C.DisableTorchFunctionSubclass():
+        #     has_xpu = any(x.device.type == "xpu" for x in flat_args if isinstance(x, torch.Tensor)) \
+        #         or any(x.values[0].device.type == "xpu" for x in flat_args if isinstance(x, MultiTensor))
+        #     device = "xpu" if has_xpu else "cuda"
+        device = "cuda" if cls.device == "cuda" else "xpu"
 
         # if we're not doing an in place op, move singular tensors to cuda now
         if not is_in_place:
@@ -511,7 +514,10 @@ class MultiTensor(torch.Tensor):
 
             W[:, i2:] -= Err1.to(Hinv.dtype).matmul(Hinv[i1:i2, i2:])
 
-        torch.cuda.synchronize()
+        if cls.device == "cuda":
+            torch.cuda.synchronize()
+        elif cls.device == "xpu":
+            torch.xpu.synchronize()
 
         if all_qparams == []:
             all_qparams.append(cur_qparams)
@@ -640,6 +646,7 @@ class GPTQQuantizer(Quantizer):
             percdamp=percdamp,
             blocksize=blocksize,
             group_size=group_size,
+            device=inputs[0].device,
         )
         # Set the state dict for the original model
         self.state_dict_manager.set_state_dict(model)
