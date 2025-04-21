@@ -504,6 +504,29 @@ class TestQuantFlow(TestCase):
             result["results"]["wikitext"]["word_perplexity,none"] < 7.77
         ), f"accuracy regressed from 7.76 to {result['results']['wikitext']['word_perplexity,none']}"
 
+    def test_gptq_quantizer_int4_weight_only_wo_model(self):
+        from torchao._models._eval import (
+            MultiTensorInputRecorder,
+            TransformerEvalWrapper,
+        )
+        from torchao.quantization.GPTQ_MT import Int4WeightOnlyGPTQQuantizer
+
+        m = ToyLinearModel().eval().xpu()
+        example_inputs = m.example_inputs(device="xpu")
+        breakpoint()
+
+        blocksize = 128
+        percdamp = 0.01
+        groupsize = 64
+
+        quantizer = Int4WeightOnlyGPTQQuantizer(
+            blocksize,
+            percdamp,
+            groupsize
+        )
+        model = quantizer.quantize(m, example_inputs)
+
+
     @unittest.skip("skipping until we get checkpoints for gpt-fast")
     def test_quantizer_int4_weight_only(self):
         from torchao._models._eval import TransformerEvalWrapper

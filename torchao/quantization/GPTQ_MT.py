@@ -197,6 +197,20 @@ class MultiTensor(torch.Tensor):
                     )
             return new_args
 
+        def tensors_to_xpu(args):
+            new_args = []
+            for x in args:
+                if isinstance(x, MultiTensor) and x.count == 1:
+                    new_args.append(x.__class__(x.values[0].xpu()))
+                else:
+                    new_args.append(
+                        x.xpu()
+                        if isinstance(x, torch.Tensor)
+                        and not isinstance(x, MultiTensor)
+                        else x
+                    )
+            return new_args
+
         def maybe_copy_new_values(orig_inp, new_inp):
             detected_difference = False
             for x, new_x in zip(orig_inp, new_inp):
@@ -259,9 +273,15 @@ class MultiTensor(torch.Tensor):
 
         orig_counts = [x.count if isinstance(x, MultiTensor) else 1 for x in flat_args]
 
+        # device hint
+        with torch._C.DisableTorchFunctionSubclass():
+            has_xpu = any(x.device.type == "xpu" for x in flat_args if isinstance(x, torch.Tensor)) \
+                or any(x.values[0].device.type == "xpu" for x in flat_args if isinstance(x, MultiTensor))
+            device = "xpu" if has_xpu else "cuda"
+
         # if we're not doing an in place op, move singular tensors to cuda now
         if not is_in_place:
-            flat_args = tensors_to_cuda(flat_args)
+            flat_args = tensors_to_cuda(flat_args) if device == "cuda" else tensors_to_xpu(flat_args)
 
         # convert [A, MultiTensor(b), MultiTensor(c1,c2,c3)] => [[A,b,c1], [A,b,c2] [A,b,c3]]
         # if its in place then instead we first convert MultiTensor(b) => MultiTensor(b1, b2, b3)
@@ -276,7 +296,7 @@ class MultiTensor(torch.Tensor):
             outputs = []
             for inp in grouped_args:
                 # we move all remaining cpu tensors to cuda
-                cuda_inp = tensors_to_cuda(inp)
+                cuda_inp = tensors_to_cuda(inp) if device == "cuda" else tensors_to_xpu(inp)
 
                 # return input to original structure
                 cur_args, cur_kwargs = tree_unflatten(cuda_inp, spec)
@@ -751,9 +771,11 @@ class Int4WeightOnlyGPTQQuantizer(GPTQQuantizer):
 # and look for multitensors and unpack them
 def remove_multitensors_from_buffers_and_params(model: nn.Module) -> nn.Module:
     for name, buf in model.named_buffers(recurse=False):
+        print("name:", name, "buf,", buf)
         if isinstance(buf, MultiTensor):
             setattr(model, name, buf.values[0])
     for name, param in model.named_parameters(recurse=False):
+        print("name:", name, "param,", param)
         if isinstance(param, MultiTensor):
             setattr(
                 model,
@@ -765,8 +787,10 @@ def remove_multitensors_from_buffers_and_params(model: nn.Module) -> nn.Module:
 
 def replace_buffers_and_params_with_multitensors(model: nn.Module) -> nn.Module:
     for name, buf in model.named_buffers(recurse=False):
+        print("name:", name, "buf,", buf)
         setattr(model, name, MultiTensor([buf]))
     for name, param in model.named_parameters(recurse=False):
+        print("name:", name, "param,", param)
         setattr(model, name, nn.Parameter(MultiTensor([param]), param.requires_grad))
     return model
 
@@ -780,6 +804,7 @@ def _replace_with_custom_fn_if_matches_filter(
     if filter_fn(model, cur_fqn[:-1]):
         model = replacement_fn(model)
     for name, child in model.named_children():
+        print("name:", name, "child,", child)
         new_child = _replace_with_custom_fn_if_matches_filter(
             child, replacement_fn, filter_fn, f"{cur_fqn}{name}."
         )
