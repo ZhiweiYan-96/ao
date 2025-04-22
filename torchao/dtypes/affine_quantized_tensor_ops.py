@@ -43,9 +43,11 @@ from torchao.dtypes.uintx.int4_cpu_layout import (
     _linear_fp_act_uint4_weight_cpu_check,
     _linear_fp_act_uint4_weight_cpu_impl,
 )
-from torchao.dtypes.uintx.int4_xpu_layout import (
+from torchao.dtypes.uintx.int4_xpu_float_zp_layout import (
     _linear_bf16_act_uint4_weight_float_zero_check,
     _linear_bf16_act_uint4_weight_float_zero_impl,
+)
+from torchao.dtypes.uintx.int4_xpu_integer_zp_layout import (
     _linear_bf16_act_uint4_weight_int8_zero_check,
     _linear_bf16_act_uint4_weight_int8_zero_impl,
 )

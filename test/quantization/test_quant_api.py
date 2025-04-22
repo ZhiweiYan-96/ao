@@ -27,7 +27,8 @@ from torchao._models.llama.tokenizer import get_tokenizer
 from torchao.dtypes import (
     AffineQuantizedTensor,
     Int4CPULayout,
-    Int4XPULayout,
+    Int4XPUIntegerZPLayout,
+    Int4XPUFloatZPLayout
 )
 from torchao.quantization import LinearActivationQuantizedTensor
 from torchao.quantization.quant_api import (
@@ -241,30 +242,32 @@ class TestQuantFlow(TestCase):
     @unittest.skipIf(not torch.xpu.is_available(), "Need XPU available")
     @unittest.skipIf(not TORCH_VERSION_AT_LEAST_2_8, "only works for torch 2.8+")
     def test_int4_wo_quant_save_load(self):
-        m = ToyLinearModel().eval().cpu()
+        layout = [Int4XPUIntegerZPLayout, Int4XPUFloatZPLayout]
+        for l in layout:
+            m = ToyLinearModel().eval().cpu()
 
-        def api(model):
-            quantize_(model, int4_weight_only(layout=Int4XPULayout()))
-            unwrap_tensor_subclass(model)
+            def api(model):
+                quantize_(model, int4_weight_only(layout=l()))
+                unwrap_tensor_subclass(model)
 
-        api(m)
+            api(m)
 
-        example_inputs = m.example_inputs()
-        ref = m(*example_inputs)
-        with tempfile.NamedTemporaryFile() as f:
-            torch.save(m.state_dict(), f)
-            f.seek(0)
-            state_dict = torch.load(f)
+            example_inputs = m.example_inputs()
+            ref = m(*example_inputs)
+            with tempfile.NamedTemporaryFile() as f:
+                torch.save(m.state_dict(), f)
+                f.seek(0)
+                state_dict = torch.load(f)
 
-        m2 = ToyLinearModel().eval().cpu()
-        api(m2)
+            m2 = ToyLinearModel().eval().cpu()
+            api(m2)
 
-        m2.load_state_dict(state_dict)
-        m2 = m2.to(device="xpu")
-        example_inputs = map(lambda x: x.xpu(), example_inputs)
-        res = m2(*example_inputs)
+            m2.load_state_dict(state_dict)
+            m2 = m2.to(device="xpu")
+            example_inputs = map(lambda x: x.xpu(), example_inputs)
+            res = m2(*example_inputs)
 
-        torch.testing.assert_close(ref, res.cpu())
+            torch.testing.assert_close(ref, res.cpu())
 
     @unittest.skipIf(not torch.cuda.is_available(), "Need CUDA available")
     @unittest.skipIf(not TORCH_VERSION_AT_LEAST_2_4, "only works for torch 2.4+")

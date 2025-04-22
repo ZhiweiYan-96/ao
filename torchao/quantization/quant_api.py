@@ -33,7 +33,8 @@ from torchao.dtypes import (
     CutlassSemiSparseLayout,
     Float8Layout,
     Int4CPULayout,
-    Int4XPULayout,
+    Int4XPUFloatZPLayout,
+    Int4XPUIntegerZPLayout,
     MarlinQQQLayout,
     MarlinSparseLayout,
     PackedLinearInt8DynamicActivationIntxWeightLayout,
@@ -141,14 +142,16 @@ LAYOUT_TO_ZERO_POINT_DOMAIN = {
     TensorCoreTiledLayout: [ZeroPointDomain.FLOAT],
     MarlinSparseLayout: [ZeroPointDomain.INT],
     Int4CPULayout: [ZeroPointDomain.FLOAT],
-    Int4XPULayout: [ZeroPointDomain.FLOAT, ZeroPointDomain.INT],
+    Int4XPUFloatZPLayout: [ZeroPointDomain.FLOAT],
+    Int4XPUIntegerZPLayout: [ZeroPointDomain.INT]
 }
 
 LAYOUT_TO_PRESERVE_ZEROS = {
     TensorCoreTiledLayout: False,
     MarlinSparseLayout: True,
     Int4CPULayout: False,
-    Int4XPULayout: False,
+    Int4XPUFloatZPLayout: False,
+    Int4XPUIntegerZPLayout: False,
 }
 
 
@@ -1030,7 +1033,7 @@ def _int4_weight_only_transform(
             zero_point_domain in LAYOUT_TO_ZERO_POINT_DOMAIN[type(layout)]
         ), f"Layout only support {LAYOUT_TO_ZERO_POINT_DOMAIN[layout]}"
 
-    if zero_point_domain == ZeroPointDomain.INT and isinstance(layout, Int4XPULayout):
+    if zero_point_domain == ZeroPointDomain.INT and isinstance(layout, Int4XPUIntegerZPLayout):
         zero_point_dtype = torch.int32
 
     preserve_zero = (

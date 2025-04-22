@@ -19,7 +19,7 @@ from torch._dynamo import config
 from torch._inductor.utils import run_and_get_code
 
 import torchao
-from torchao.dtypes import Int4CPULayout, Int4XPULayout, TensorCoreTiledLayout
+from torchao.dtypes import Int4CPULayout, Int4XPUIntegerZPLayout, Int4XPUFloatZPLayout, TensorCoreTiledLayout
 from torchao.quantization import safe_int_mm
 from torchao.quantization.autoquant import (
     AQFloat8PerRowScalingDynamicallyQuantizedLinearWeight,
@@ -157,7 +157,10 @@ def _int4wo_api(mod, use_hqq=False):
         unwrap_tensor_subclass(mod)
     elif check_xpu_version(next(mod.parameters()).device):
         quantize_(
-            mod, int4_weight_only(layout=Int4XPULayout()), set_inductor_config=False
+            mod, int4_weight_only(layout=Int4XPUIntegerZPLayout()), set_inductor_config=False
+        )
+        quantize_(
+            mod, int4_weight_only(layout=Int4XPUFloatZPLayout()), set_inductor_config=False
         )
         unwrap_tensor_subclass(mod)
     elif TORCH_VERSION_AT_LEAST_2_4:

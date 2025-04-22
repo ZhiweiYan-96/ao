@@ -18,7 +18,8 @@ from torchao.core.config import AOBaseConfig
 from torchao.dtypes import (
     CutlassInt4PackedLayout,
     Int4CPULayout,
-    Int4XPULayout,
+    Int4XPUFloatZPLayout,
+    Int4XPUIntegerZPLayout,
     PlainLayout,
     SemiSparseLayout,
     to_affine_quantized_intx,
@@ -67,13 +68,13 @@ def get_quantization_functions(
             )
         elif check_xpu_version(device):
             base_functions.append(
-                int4_weight_only(group_size=32, layout=Int4XPULayout())
+                int4_weight_only(group_size=32, layout=Int4XPUFloatZPLayout())
             )
             if int4_zp_int:
                 base_functions.append(
                     int4_weight_only(
                         group_size=32,
-                        layout=Int4XPULayout(),
+                        layout=Int4XPUIntegerZPLayout(),
                         zero_point_domain=ZeroPointDomain.INT,
                     )
                 )

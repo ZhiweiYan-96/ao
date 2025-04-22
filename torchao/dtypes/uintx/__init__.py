@@ -7,8 +7,11 @@ from .cutlass_int4_packed_layout import (
 from .int4_cpu_layout import (
     Int4CPULayout,
 )
-from .int4_xpu_layout import (
-    Int4XPULayout,
+from .int4_xpu_float_zp_layout import (
+    Int4XPUFloatZPLayout,
+)
+from .int4_xpu_integer_zp_layout import (
+    Int4XPUIntegerZPLayout,
 )
 from .marlin_qqq_tensor import (
     MarlinQQQLayout,
@@ -47,5 +50,6 @@ __all__ = [
     "CutlassInt4PackedLayout",
     "PackedLinearInt8DynamicActivationIntxWeightLayout",
     "QDQLayout",
-    "Int4XPULayout",
+    "Int4XPUIntegerZPLayout",
+    "Int4XPUFloatZPLayout"
 ]
