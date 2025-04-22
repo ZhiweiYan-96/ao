@@ -31,6 +31,7 @@ from torchao.dtypes import (
     Int4XPUFloatZPLayout
 )
 from torchao.quantization import LinearActivationQuantizedTensor
+from torchao.quantization.observer import ZeroPointDomain
 from torchao.quantization.quant_api import (
     Quantizer,
     TwoStepQuantizer,
@@ -666,7 +667,7 @@ class TestQuantFlow(TestCase):
             group_size = 32
             if device == "xpu":
                 quantize_(
-                    m, int4_weight_only(group_size=group_size, layout=Int4XPULayout())
+                    m, int4_weight_only(group_size=group_size, layout=Int4XPUIntegerZPLayout())
                 )
             else:
                 quantize_(m, int4_weight_only(group_size=group_size))
@@ -674,10 +675,11 @@ class TestQuantFlow(TestCase):
             assert isinstance(m.linear2.weight, AffineQuantizedTensor)
 
             # reference
-            _ref_change_linear_weights_to_int4_woqtensors(m_copy, groupsize=group_size)
+            _ref_change_linear_weights_to_int4_woqtensors(m_copy, groupsize=group_size, zero_point_domain=ZeroPointDomain.INT)
 
             res = m(*example_inputs)
             ref = m_copy(*example_inputs)
+            breakpoint()
 
             self.assertTrue(torch.equal(res, ref))
 

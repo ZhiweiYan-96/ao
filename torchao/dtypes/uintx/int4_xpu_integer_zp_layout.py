@@ -43,7 +43,6 @@ def _linear_bf16_act_uint4_weight_int8_zero_check(input_tensor, weight_tensor, b
         and weight_tensor.dtype == torch.bfloat16
         and len(weight_tensor.shape) == 2
         and weight_tensor.zero_point_domain == ZeroPointDomain.INT
-        and weight_tensor.tensor_impl.scale_and_zero is None
         and weight_tensor.tensor_impl.scale.dtype == torch.bfloat16
         and weight_tensor.tensor_impl.zero.dtype == torch.int8
         and isinstance(weight_tensor._layout, Int4XPUIntegerZPLayout)

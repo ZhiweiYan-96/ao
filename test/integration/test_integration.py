@@ -103,7 +103,7 @@ logger = logging.getLogger("INFO")
 torch.manual_seed(0)
 config.cache_size_limit = 100
 
-COMMON_DEVICES = ["cpu", "cuda"]
+COMMON_DEVICES = ["cpu", "cuda", "xpu"]
 
 COMMON_DTYPES = [torch.float32, torch.float16, torch.bfloat16]
 
@@ -157,10 +157,7 @@ def _int4wo_api(mod, use_hqq=False):
         unwrap_tensor_subclass(mod)
     elif check_xpu_version(next(mod.parameters()).device):
         quantize_(
-            mod, int4_weight_only(layout=Int4XPUIntegerZPLayout()), set_inductor_config=False
-        )
-        quantize_(
-            mod, int4_weight_only(layout=Int4XPUFloatZPLayout()), set_inductor_config=False
+            mod, int4_weight_only(layout=Int4XPUIntegerZPLayout(), set_inductor_config=False),
         )
         unwrap_tensor_subclass(mod)
     elif TORCH_VERSION_AT_LEAST_2_4:
@@ -1138,7 +1135,7 @@ class TestSubclass(unittest.TestCase):
         if check_cpu_version(device):
             layout_list.append(Int4CPULayout())
         elif check_xpu_version(device):
-            layout_list.append(Int4XPULayout())
+            layout_list.append(Int4XPUIntegerZPLayout())
         else:
             for inner_k_tiles in [4, 2]:
                 layout_list.append(TensorCoreTiledLayout(inner_k_tiles=inner_k_tiles))
