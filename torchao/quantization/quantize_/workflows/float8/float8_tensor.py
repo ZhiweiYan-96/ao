@@ -45,6 +45,7 @@ from torchao.utils import (
     fill_defaults,
     is_sm_at_least_90,
     is_sm_at_least_100,
+    is_MI300,
 )
 
 if _is_mslk_available():
@@ -78,6 +79,14 @@ class QuantizeTensorToFloat8Kwargs(QuantizeTensorKwargs):
     hp_value_ub: Optional[float] = None
     kernel_preference: KernelPreference = KernelPreference.AUTO
 
+def e4m3fn_to_e4m3fnuz(t: torch.Tensor, t_scale: torch.Tensor):
+    ROCM_FP8_NAN_AS_INT = -128
+    t_as_int8 = t.view(torch.int8)
+    t_as_int8[t_as_int8 == ROCM_FP8_NAN_AS_INT] = 0
+    t = t_as_int8.view(torch.float8_e4m3fnuz)
+
+    t_scale = t_scale * 2.0
+    return t, t_scale
 
 class Float8Tensor(TorchAOBaseTensor):
     """
@@ -144,6 +153,10 @@ class Float8Tensor(TorchAOBaseTensor):
         self.mm_config = mm_config
         self.act_quant_kwargs = act_quant_kwargs
         self.kernel_preference = kernel_preference
+
+        if torch.version.hip and is_MI300():
+            if self.qdata.dtype == torch.float8_e4m3fn:
+                self.qdata, self.scale = e4m3fn_to_e4m3fnuz(self.qdata, self.scale)
 
     def __repr__(self):
         return (
